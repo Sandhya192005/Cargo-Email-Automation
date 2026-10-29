@@ -1,0 +1,1001 @@
+{
+  "name": "shipment automation",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 5,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "output": "raw",
+        "filters": {
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "id": "7e80a4ea-9a45-492a-96bd-291b4fbb26f1",
+      "name": "New Outlook Email",
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        336
+      ],
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "=Subject: {{ $json.subject }}\n\n{{ $json.bodyPreview }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Shipment Cargo Information",
+              "description": "Emails with shipment, cargo, freight, booking, bill of lading, container, vessel, ETA/ETD or tracking information for a customer"
+            },
+            {
+              "category": "Other",
+              "description": "Anything not related to shipment or cargo information"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "201e13a9-232e-4e85-97c1-051842340642",
+      "name": "Classify Email",
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        432,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-haiku-5-5",
+          "cachedResultName": "Claude Haiku 5.5"
+        },
+        "options": {}
+      },
+      "id": "d787ef71-aba8-4da6-ab31-443fe5d25b8a",
+      "name": "Claude Classifier Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        512,
+        320
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "cfcd9c68-d932-4f68-8aaa-db95cfca7f08",
+      "name": "Process One Email",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        272,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "text": "=Subject: {{ $(\"Process One Email\").item.json.subject }}\n\n{{ $(\"Process One Email\").item.json.body.content }}",
+        "schemaType": "manual",
+        "inputSchema": "{\"type\": \"object\", \"properties\": {\"shipments\": {\"type\": \"array\", \"description\": \"One entry for every separate shipment in the email, even if they belong to different customers\", \"items\": {\"type\": \"object\", \"properties\": {\"owner\": {\"type\": \"string\", \"description\": \"Customer / owner name the shipment belongs to\"}, \"reference_no\": {\"type\": \"string\", \"description\": \"Reference number\"}, \"agent_ref\": {\"type\": \"string\", \"description\": \"Agent reference\"}, \"nomination_date\": {\"type\": \"string\", \"description\": \"Nomination date\"}, \"shipper\": {\"type\": \"string\", \"description\": \"Shipper name\"}, \"invoice_number\": {\"type\": \"string\", \"description\": \"Invoice number\"}, \"pol\": {\"type\": \"string\", \"description\": \"Port of loading\"}, \"pod\": {\"type\": \"string\", \"description\": \"Port of discharge\"}, \"terms\": {\"type\": \"string\", \"description\": \"Shipping terms such as FOB, CFR, CIF\"}, \"fcl\": {\"type\": \"string\", \"description\": \"Container count and type, e.g. 1x20GP\"}, \"etl\": {\"type\": \"string\", \"description\": \"Estimated time of loading / departure\"}, \"eta\": {\"type\": \"string\", \"description\": \"Estimated time of arrival\"}, \"vessel_flight\": {\"type\": \"string\", \"description\": \"Vessel or flight name and voyage\"}, \"routing\": {\"type\": \"string\", \"description\": \"Routing\"}, \"hbl_hawb\": {\"type\": \"string\", \"description\": \"House bill of lading or air waybill number\"}, \"surrender_status\": {\"type\": \"string\", \"description\": \"Surrender status of the bill of lading\"}, \"container_number\": {\"type\": \"string\", \"description\": \"Container number(s)\"}, \"carrier_airline\": {\"type\": \"string\", \"description\": \"Carrier or airline\"}, \"final_hbl_send\": {\"type\": \"string\", \"description\": \"Whether the final HBL has been sent, Yes or No\"}, \"status\": {\"type\": \"string\", \"description\": \"Current shipment status\"}, \"remarks\": {\"type\": \"string\", \"description\": \"Remarks or notes\"}}, \"required\": [\"owner\"]}}}, \"required\": [\"shipments\"]}",
+        "options": {}
+      },
+      "id": "296b5ce8-cb38-4ddb-b1c4-0265be9ad0c3",
+      "name": "Extract Shipment Details",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-haiku-5-5",
+          "cachedResultName": "Claude Haiku 5.5"
+        },
+        "options": {}
+      },
+      "id": "eafd2a94-883b-4d7d-bfab-fc69e6b9b1ac",
+      "name": "Claude Extractor Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        1328,
+        288
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.shipments",
+        "options": {
+          "destinationFieldName": "shipment"
+        }
+      },
+      "id": "2223d6bc-c5db-45fd-af4f-6f53b639c242",
+      "name": "Split Shipments",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [
+        1184,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "Owner",
+              "value": "={{ $json.shipment.owner }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "Reference No",
+              "value": "={{ $json.shipment.reference_no }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "Agent Ref",
+              "value": "={{ $json.shipment.agent_ref }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "Nomination Date",
+              "value": "={{ $json.shipment.nomination_date }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "Shipper",
+              "value": "={{ $json.shipment.shipper }}",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "Invoice Number",
+              "value": "={{ $json.shipment.invoice_number }}",
+              "type": "string"
+            },
+            {
+              "id": "a7",
+              "name": "POL",
+              "value": "={{ $json.shipment.pol }}",
+              "type": "string"
+            },
+            {
+              "id": "a8",
+              "name": "POD",
+              "value": "={{ $json.shipment.pod }}",
+              "type": "string"
+            },
+            {
+              "id": "a9",
+              "name": "Terms",
+              "value": "={{ $json.shipment.terms }}",
+              "type": "string"
+            },
+            {
+              "id": "a10",
+              "name": "FCL",
+              "value": "={{ $json.shipment.fcl }}",
+              "type": "string"
+            },
+            {
+              "id": "a11",
+              "name": "ETL",
+              "value": "={{ $json.shipment.etl }}",
+              "type": "string"
+            },
+            {
+              "id": "a12",
+              "name": "ETA",
+              "value": "={{ $json.shipment.eta }}",
+              "type": "string"
+            },
+            {
+              "id": "a13",
+              "name": "Vessel/Flight",
+              "value": "={{ $json.shipment.vessel_flight }}",
+              "type": "string"
+            },
+            {
+              "id": "a14",
+              "name": "Routing",
+              "value": "={{ $json.shipment.routing }}",
+              "type": "string"
+            },
+            {
+              "id": "a15",
+              "name": "HBL/HAWB",
+              "value": "={{ $json.shipment.hbl_hawb }}",
+              "type": "string"
+            },
+            {
+              "id": "a16",
+              "name": "Surrender Status",
+              "value": "={{ $json.shipment.surrender_status }}",
+              "type": "string"
+            },
+            {
+              "id": "a17",
+              "name": "Container Number",
+              "value": "={{ $json.shipment.container_number }}",
+              "type": "string"
+            },
+            {
+              "id": "a18",
+              "name": "Carrier/Airline",
+              "value": "={{ $json.shipment.carrier_airline }}",
+              "type": "string"
+            },
+            {
+              "id": "a19",
+              "name": "Final HBL Send",
+              "value": "={{ $json.shipment.final_hbl_send }}",
+              "type": "string"
+            },
+            {
+              "id": "a20",
+              "name": "Status",
+              "value": "={{ $json.shipment.status }}",
+              "type": "string"
+            },
+            {
+              "id": "a21",
+              "name": "Remarks",
+              "value": "={{ $json.shipment.remarks }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a73eb1f8-3410-4a92-945e-ae2caf35a796",
+      "name": "Flatten Extracted Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1600,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "workbook": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_MASTER_WORKBOOK_ID"
+        },
+        "worksheet": {
+          "__rl": true,
+          "mode": "id",
+          "value": "{00000000-0001-0000-0000-000000000000}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_MASTER_TABLE_ID"
+        },
+        "dataMode": "autoMap",
+        "options": {}
+      },
+      "id": "91873512-7e18-447d-b58b-52c7c4caeb96",
+      "name": "Append to Master Excel",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
+      "position": [
+        1824,
+        64
+      ],
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "name": "Microsoft Excel account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "messageId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Process One Email\").first().json.id }}"
+        },
+        "updateFields": {
+          "isRead": true
+        }
+      },
+      "id": "6dc48e4f-0236-4c3c-b11a-bdf65bb3455b",
+      "name": "Mark Shipment Email Read",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        64
+      ],
+      "executeOnce": true,
+      "webhookId": "cc0f009b-d725-4f47-83d8-803d2e444852",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const seen = new Set();\nconst out = [];\nfor (const i of $('Flatten Extracted Data').all()) {\n  const owner = String(i.json.Owner || '').trim();\n  const key = owner.toLowerCase();\n  if (owner && !seen.has(key)) { seen.add(key); out.push({ json: { Owner: owner } }); }\n}\nreturn out;"
+      },
+      "id": "5a65fcdb-92cd-4328-85d3-54e290875343",
+      "name": "List Unique Customers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1808,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "getRows",
+        "workbook": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_CUSTOMER_LIST_WORKBOOK_ID"
+        },
+        "worksheet": {
+          "__rl": true,
+          "mode": "id",
+          "value": "{00000000-0001-0000-0000-000000000000}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_CUSTOMER_LIST_TABLE_ID"
+        },
+        "returnAll": true,
+        "filters": {}
+      },
+      "id": "fc058ce2-071f-47e6-bc9c-ada2e8be1e52",
+      "name": "Get Customer Email List",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
+      "position": [
+        2224,
+        144
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "name": "Microsoft Excel account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ String($json.Owner).trim().toLowerCase() }}",
+              "rightValue": "={{ String($(\"Process One Customer\").last().json.Owner).trim().toLowerCase() }}",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "df5bb5d4-e912-4fdd-afd5-5ea9b86c3b99",
+      "name": "Find Customer Email",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2448,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "getRows",
+        "workbook": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_MASTER_WORKBOOK_ID"
+        },
+        "worksheet": {
+          "__rl": true,
+          "mode": "id",
+          "value": "{00000000-0001-0000-0000-000000000000}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_MASTER_TABLE_ID"
+        },
+        "returnAll": true,
+        "filters": {}
+      },
+      "id": "3ae57794-ac42-4380-b416-5df7850fe943",
+      "name": "Read Master Excel",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
+      "position": [
+        2672,
+        144
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "name": "Microsoft Excel account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ String($json.Owner).trim().toLowerCase() }}",
+              "rightValue": "={{ String($(\"Process One Customer\").last().json.Owner).trim().toLowerCase() }}",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1c50cdde-043e-4e26-8a02-543ea78ffebc",
+      "name": "Keep Customer Rows",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2896,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "fileName": "={{ $(\"Process One Customer\").last().json.Owner }}_shipments_{{ $now.toFormat(\"yyyy-MM-dd\") }}.xlsx",
+          "sheetName": "Shipments"
+        }
+      },
+      "id": "0c86e9d3-2a3f-4d90-9646-3faa7bb590cd",
+      "name": "Build Customer Excel",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        3120,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "toRecipients": "reviewer@example.com",
+        "subject": "=Review shipment Excel for {{ $(\"Process One Customer\").last().json.Owner }}",
+        "bodyContent": "=<p>The shipment Excel for <b>{{ $(\"Process One Customer\").last().json.Owner }}</b> is attached.</p><p>Open the review form to approve it as is, or upload an edited Excel and approve:</p><p><a href=\"{{ $execution.resumeFormUrl }}\">{{ $execution.resumeFormUrl }}</a></p>",
+        "additionalFields": {
+          "attachments": {
+            "attachments": [
+              {
+                "binaryPropertyName": "data"
+              }
+            ]
+          },
+          "bodyContentType": "html"
+        }
+      },
+      "id": "cf67286d-521d-4356-8f76-2956f7edbfb9",
+      "name": "Send Excel for Review",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        2752,
+        304
+      ],
+      "webhookId": "5c2d3214-f086-4ea0-9cc2-bc32101d21d7",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "form",
+        "formTitle": "Review customer shipment Excel",
+        "formDescription": "Approve the attached Excel as is, or upload your manually edited Excel and approve it. The approved file is emailed to the customer.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Edited and approve"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Edited Excel",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".xlsx,.xls"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b82caf08-658d-4ae4-982f-cce02177f785",
+      "name": "Human Review Form",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2976,
+        304
+      ],
+      "webhookId": "a6c8a41d-b0d5-4047-b200-c66f3bcc2c24"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const original = $('Build Customer Excel').last().binary.data;\nconst editedKeys = Object.keys($input.item.binary || {});\nconst useEdited = $json.Decision === 'Edited and approve' && editedKeys.length > 0;\nconst file = useEdited ? $input.item.binary[editedKeys[0]] : original;\nconst customer = $('Process One Customer').last().json.Owner;\nconst TEST_EMAIL = 'test-recipient@example.com';\nconst realEmail = String($('Find Customer Email').last().json.Email).replace(/;/g, ',');\nconst toEmail = TEST_EMAIL || realEmail;\nreturn { json: { customer, toEmail, usedEditedFile: useEdited }, binary: { approved_excel: file } };"
+      },
+      "id": "269b314e-9e3f-4be4-b8c5-a3890377443b",
+      "name": "Pick Approved Excel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "toRecipients": "={{ $json.toEmail }}",
+        "subject": "=Your shipment details - {{ $json.customer }}",
+        "bodyContent": "=<p>Dear {{ $json.customer }},</p><p>Please find attached your latest shipment details.</p><p>Regards</p>",
+        "additionalFields": {
+          "attachments": {
+            "attachments": [
+              {
+                "binaryPropertyName": "approved_excel"
+              }
+            ]
+          },
+          "bodyContentType": "html"
+        }
+      },
+      "id": "44e73cde-dc58-4dc6-9187-df77e98644a2",
+      "name": "Email Excel to Customer",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        3424,
+        304
+      ],
+      "webhookId": "c76195b5-006b-4e5e-b94c-5a4033d59987",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "0247096d-7143-4ea4-8e6a-0f82c24050a0",
+      "name": "Process One Customer",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2032,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "messageId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Process One Email\").item.json.id }}"
+        },
+        "updateFields": {
+          "isRead": true
+        }
+      },
+      "id": "616465b1-1533-4fae-b2c1-b6df86647e23",
+      "name": "Mark Other Email Read",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        720,
+        288
+      ],
+      "webhookId": "5b9e396e-40cf-4624-980d-0b69b78d4b54",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "name": "Microsoft Outlook account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "New Outlook Email": {
+      "main": [
+        [
+          {
+            "node": "Process One Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Email": {
+      "main": [
+        [
+          {
+            "node": "Extract Shipment Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Other Email Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Classifier Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Classify Email",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process One Email": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Classify Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Shipment Details": {
+      "main": [
+        [
+          {
+            "node": "Split Shipments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Extractor Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Shipment Details",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Shipments": {
+      "main": [
+        [
+          {
+            "node": "Flatten Extracted Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flatten Extracted Data": {
+      "main": [
+        [
+          {
+            "node": "Append to Master Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Master Excel": {
+      "main": [
+        [
+          {
+            "node": "Mark Shipment Email Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Shipment Email Read": {
+      "main": [
+        [
+          {
+            "node": "List Unique Customers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Unique Customers": {
+      "main": [
+        [
+          {
+            "node": "Process One Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Customer Email List": {
+      "main": [
+        [
+          {
+            "node": "Find Customer Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Customer Email": {
+      "main": [
+        [
+          {
+            "node": "Read Master Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master Excel": {
+      "main": [
+        [
+          {
+            "node": "Keep Customer Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Customer Rows": {
+      "main": [
+        [
+          {
+            "node": "Build Customer Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Customer Excel": {
+      "main": [
+        [
+          {
+            "node": "Send Excel for Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Excel for Review": {
+      "main": [
+        [
+          {
+            "node": "Human Review Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human Review Form": {
+      "main": [
+        [
+          {
+            "node": "Pick Approved Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Approved Excel": {
+      "main": [
+        [
+          {
+            "node": "Email Excel to Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Excel to Customer": {
+      "main": [
+        [
+          {
+            "node": "Process One Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process One Customer": {
+      "main": [
+        [
+          {
+            "node": "Process One Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Customer Email List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Other Email Read": {
+      "main": [
+        [
+          {
+            "node": "Process One Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "meta": {},
+  "nodeGroups": [
+    {
+      "id": "8de376fa-2f14-4e35-8619-87c8ba869f06",
+      "name": "Classify shipment emails",
+      "nodeIds": [
+        "201e13a9-232e-4e85-97c1-051842340642",
+        "d787ef71-aba8-4da6-ab31-443fe5d25b8a"
+      ],
+      "description": "Reads each unread Outlook email and decides whether it carries shipment cargo information or is unrelated"
+    },
+    {
+      "id": "6d7209c3-385b-4d51-b262-4cfa53442bc8",
+      "name": "Record shipment details",
+      "nodeIds": [
+        "296b5ce8-cb38-4ddb-b1c4-0265be9ad0c3",
+        "eafd2a94-883b-4d7d-bfab-fc69e6b9b1ac",
+        "2223d6bc-c5db-45fd-af4f-6f53b639c242",
+        "a73eb1f8-3410-4a92-945e-ae2caf35a796",
+        "91873512-7e18-447d-b58b-52c7c4caeb96",
+        "6dc48e4f-0236-4c3c-b11a-bdf65bb3455b"
+      ],
+      "description": "Pulls every shipment from the email, adds each to the master Excel, then marks the email read"
+    },
+    {
+      "id": "9291bf2c-69c8-4449-843c-8c644e794b7a",
+      "name": "Deliver customer Excel",
+      "nodeIds": [
+        "5a65fcdb-92cd-4328-85d3-54e290875343",
+        "0247096d-7143-4ea4-8e6a-0f82c24050a0",
+        "fc058ce2-071f-47e6-bc9c-ada2e8be1e52",
+        "df5bb5d4-e912-4fdd-afd5-5ea9b86c3b99",
+        "3ae57794-ac42-4380-b416-5df7850fe943",
+        "1c50cdde-043e-4e26-8a02-543ea78ffebc",
+        "0c86e9d3-2a3f-4d90-9646-3faa7bb590cd",
+        "cf67286d-521d-4356-8f76-2956f7edbfb9",
+        "b82caf08-658d-4ae4-982f-cce02177f785",
+        "269b314e-9e3f-4be4-b8c5-a3890377443b",
+        "44e73cde-dc58-4dc6-9187-df77e98644a2"
+      ],
+      "description": "Per customer in the email: builds their own Excel from the master, reviewer approves or edits it, then it is emailed to them"
+    }
+  ],
+  "tags": []
+}

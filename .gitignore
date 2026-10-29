@@ -1,0 +1,23 @@
+# Secrets and local config
+.env
+.env.*
+*.pem
+*.key
+credentials*.json
+
+# Real business data (never publish shipment records or customer lists)
+*.xlsx
+*.xls
+*.csv
+data/
+exports/
+
+# n8n local data
+.n8n/
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
